@@ -3,6 +3,16 @@
 A zero-dependency Ruby library for parsing, generating, and validating
 ANSI X12 EDI 810 Invoice transaction sets.
 
+## EDI 810 Structure (ANSI X12)
+
+An EDI 810 document is wrapped in envelope segments and contains three areas: Header, Detail, and Summary.
+
+- **Envelope:** ISA (Interchange Control Header), GS (Functional Group Header), ST (Transaction Set Header), SE (Transaction Set Trailer), GE (Group Trailer), IEA (Interchange Trailer)
+- **Header segments:** BIG (Beginning Segment for Invoice -- invoice date, invoice#, PO date, PO#), NTE (Notes), CUR (Currency), REF (Reference), PER (Contact), N1 Loop (N1/N2/N3/N4 -- party name/address), ITD (Terms of Sale), DTM (Date/Time), FOB
+- **Detail segments:** IT1 Loop -- IT1 (line item: qty, UOM, unit price, product IDs), PID (description), REF, SAC (charges/allowances), TXI (tax), DTM, SLN (subline items)
+- **Summary segments:** TDS (total monetary values), TXI, CAD (carrier), SAC Loop, ISS (shipment summary), CTT (transaction totals: line count + hash)
+- **Delimiters** are auto-detected from ISA segment: element separator (ISA[3]), sub-element separator (ISA[104]), segment terminator (ISA[105]).
+
 ## Features
 
 - **Parse** EDI 810 documents into structured Ruby objects
@@ -12,6 +22,17 @@ ANSI X12 EDI 810 Invoice transaction sets.
 - **All 52 segment types** from the X12 810 specification
 - **Round-trip fidelity** -- parse and regenerate without data loss
 - **Zero runtime dependencies** -- pure Ruby, works with Ruby >= 3.0
+
+## Design Decisions
+
+- **Zero dependencies** — pure Ruby, no external gems required at runtime
+- **Auto-detect delimiters** from the ISA segment (positions 3, 104, 105 of the raw ISA line). Default: * element sep, : sub-element sep, ~ segment terminator
+- **Segment classes** inherit from `Edi810::Segment` base class, which provides `#to_h`, `#to_edi`, element accessors via DSL, and type coercion
+- **Loops** are plain Ruby objects grouping related segments with iteration support
+- **Parser** is a single-pass state machine: reads tokens sequentially, tracks current area (envelope/header/detail/summary), and builds the `Document`
+- **Validator checks:** mandatory segments present, element data types (AN/ID/DT/TM/N/R), min/max lengths, structural ordering, CTT line count matches IT1 count
+- **Generator** serializes Document back to EDI string with configurable delimiters
+- **Immutable segments** -- once parsed, segment data is frozen. Mutations go through builder/generator.
 
 ## Installation
 
