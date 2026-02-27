@@ -20,6 +20,8 @@ jobs:
             allow-failure: true
           - ruby-version: '2.4'
             allow-failure: true
+          - ruby-version: '2.7'
+            allow-failure: true
 
     continue-on-error: ${{ matrix.allow-failure || false }}
 
